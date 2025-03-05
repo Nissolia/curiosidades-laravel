@@ -1,22 +1,10 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\CuriosidadController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return redirect()->route('curiosidades.index');
-});
+// Ruta de inicio (muestra la lista de curiosidades)
+Route::get('/', [CuriosidadController::class, 'index'])->name('home');
 
-Route::get('/dashboard', function () {
-    return view('dashboard');
-})->middleware(['auth', 'verified'])->name('dashboard');
-
-Route::middleware('auth')->group(function () {
-    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
-    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
-    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
-});
-Route::resource('curiosidades', CuriosidadController::class)->middleware('auth');
-
-require __DIR__.'/auth.php';
+// Rutas de recursos para Curiosidad (CRUD)
+Route::resource('curiosidades', CuriosidadController::class);

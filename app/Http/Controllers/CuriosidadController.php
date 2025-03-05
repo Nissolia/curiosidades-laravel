@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Curiosidad;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class CuriosidadController extends Controller
 {
@@ -26,20 +27,24 @@ class CuriosidadController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required',
-            'imagen' => 'nullable|image|max:2048'
+            'imagen' => 'nullable|image|max:2048' // 2MB máximo
         ]);
 
-        $curiosidad = new Curiosidad();
-        $curiosidad->titulo = $request->titulo;
-        $curiosidad->descripcion = $request->descripcion;
+        try {
+            $curiosidad = new Curiosidad();
+            $curiosidad->titulo = $request->titulo;
+            $curiosidad->descripcion = $request->descripcion;
 
-        if ($request->hasFile('imagen')) {
-            $curiosidad->imagen = $request->file('imagen')->store('imagenes', 'public');
+            if ($request->hasFile('imagen')) {
+                $curiosidad->imagen = $request->file('imagen')->store('imagenes', 'public');
+            }
+
+            $curiosidad->save();
+
+            return redirect()->route('curiosidades.index')->with('success', 'Curiosidad creada correctamente.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al crear la curiosidad: ' . $e->getMessage());
         }
-
-        $curiosidad->save();
-
-        return redirect()->route('curiosidades.index')->with('success', 'Curiosidad creada correctamente.');
     }
 
     // Mostrar una curiosidad específica
@@ -60,25 +65,44 @@ class CuriosidadController extends Controller
         $request->validate([
             'titulo' => 'required|string|max:255',
             'descripcion' => 'required',
-            'imagen' => 'nullable|image|max:2048'
+            'imagen' => 'nullable|image|max:2048' // 2MB máximo
         ]);
 
-        $curiosidad->titulo = $request->titulo;
-        $curiosidad->descripcion = $request->descripcion;
+        try {
+            $curiosidad->titulo = $request->titulo;
+            $curiosidad->descripcion = $request->descripcion;
 
-        if ($request->hasFile('imagen')) {
-            $curiosidad->imagen = $request->file('imagen')->store('imagenes', 'public');
+            if ($request->hasFile('imagen')) {
+                // Eliminar la imagen anterior si existe
+                if ($curiosidad->imagen && Storage::disk('public')->exists($curiosidad->imagen)) {
+                    Storage::disk('public')->delete($curiosidad->imagen);
+                }
+                // Guardar la nueva imagen
+                $curiosidad->imagen = $request->file('imagen')->store('imagenes', 'public');
+            }
+
+            $curiosidad->save();
+
+            return redirect()->route('curiosidades.index')->with('success', 'Curiosidad actualizada correctamente.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al actualizar la curiosidad: ' . $e->getMessage());
         }
-
-        $curiosidad->save();
-
-        return redirect()->route('curiosidades.index')->with('success', 'Curiosidad actualizada correctamente.');
     }
 
     // Eliminar una curiosidad
     public function destroy(Curiosidad $curiosidad)
     {
-        $curiosidad->delete();
-        return redirect()->route('curiosidades.index')->with('success', 'Curiosidad eliminada correctamente.');
+        try {
+            // Eliminar la imagen asociada si existe
+            if ($curiosidad->imagen && Storage::disk('public')->exists($curiosidad->imagen)) {
+                Storage::disk('public')->delete($curiosidad->imagen);
+            }
+
+            $curiosidad->delete();
+
+            return redirect()->route('curiosidades.index')->with('success', 'Curiosidad eliminada correctamente.');
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Error al eliminar la curiosidad: ' . $e->getMessage());
+        }
     }
 }
